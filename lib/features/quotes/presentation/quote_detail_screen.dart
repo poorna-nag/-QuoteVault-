@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:gallery_saver/gallery_saver.dart';
+import 'package:gal/gal.dart';
 import 'package:quote_vault/features/collections/presentation/bloc/collections_bloc.dart';
 import 'package:quote_vault/features/collections/collections_screen.dart';
 import 'package:quote_vault/features/collections/presentation/bloc/collections_event.dart';
@@ -74,7 +74,7 @@ class _QuoteDetailScreenState extends State<QuoteDetailScreen> {
     );
     await file.writeAsBytes(image);
 
-    await GallerySaver.saveImage(file.path);
+    await Gal.putImage(file.path);
 
     if (mounted) {
       ScaffoldMessenger.of(

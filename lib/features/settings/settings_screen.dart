@@ -8,6 +8,7 @@ import 'package:quote_vault/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:quote_vault/features/auth/presentation/bloc/auth_event.dart';
 import 'package:quote_vault/features/auth/presentation/profile_screen.dart';
 import 'package:quote_vault/features/quotes/data/repo/quote_repo.dart';
+import 'package:quote_vault/main.dart';
 
 class SettingsScreen extends StatefulWidget {
   final bool embed;
@@ -117,6 +118,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   if (value != null) {
                     setState(() => _themeIndex = value);
                     await PreferencesService.setThemeIndex(value);
+                    // Update the global theme notifier to trigger app-wide theme change
+                    themeNotifier.value = value;
                   }
                 },
               ),

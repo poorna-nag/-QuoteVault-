@@ -13,6 +13,9 @@ import 'package:quote_vault/features/quotes/presentation/home_screen.dart';
 import 'package:quote_vault/features/quotes/presentation/bloc/quote_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 
+// Global theme notifier for reactive theme switching
+final themeNotifier = ValueNotifier<int>(0);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -23,30 +26,14 @@ void main() async {
 
   await NotificationService.init();
 
+  // Load saved theme preference
+  themeNotifier.value = await PreferencesService.getThemeIndex();
+
   runApp(const QuoteVaultApp());
 }
 
-class QuoteVaultApp extends StatefulWidget {
+class QuoteVaultApp extends StatelessWidget {
   const QuoteVaultApp({super.key});
-
-  @override
-  State<QuoteVaultApp> createState() => _QuoteVaultAppState();
-}
-
-class _QuoteVaultAppState extends State<QuoteVaultApp> {
-  int _themeIndex = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadTheme();
-  }
-
-  Future<void> _loadTheme() async {
-    final themeIndex = await PreferencesService.getThemeIndex();
-    final themes = AppTheme.themes;
-    setState(() => _themeIndex = themeIndex.clamp(0, themes.length - 1));
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,17 +43,22 @@ class _QuoteVaultAppState extends State<QuoteVaultApp> {
         BlocProvider(create: (_) => QuoteBloc()),
         BlocProvider(create: (_) => CollectionsBloc()),
       ],
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.themes[_themeIndex],
-        home: BlocBuilder<AuthBloc, AuthState>(
-          builder: (context, state) {
-            if (state is AuthSuccess && state.userId.isNotEmpty) {
-              return const HomeScreen();
-            }
-            return const AuthScreen();
-          },
-        ),
+      child: ValueListenableBuilder<int>(
+        valueListenable: themeNotifier,
+        builder: (context, themeIndex, child) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.themes[themeIndex],
+            home: BlocBuilder<AuthBloc, AuthState>(
+              builder: (context, state) {
+                if (state is AuthSuccess && state.userId.isNotEmpty) {
+                  return const HomeScreen();
+                }
+                return const AuthScreen();
+              },
+            ),
+          );
+        },
       ),
     );
   }
