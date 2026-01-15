@@ -82,19 +82,37 @@ class _AuthScreenState extends State<AuthScreen> {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () {
+                          final email = emailController.text.trim();
+                          final password = passwordController.text.trim();
+                          
+                          if (email.isEmpty || password.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Please fill in all fields')),
+                            );
+                            return;
+                          }
+                          
+                          if (!email.contains('@')) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Please enter a valid email')),
+                            );
+                            return;
+                          }
+                          
+                          if (password.length < 6) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Password must be at least 6 characters')),
+                            );
+                            return;
+                          }
+                          
                           if (isLogin) {
                             context.read<AuthBloc>().add(
-                                  LoginEvent(
-                                    emailController.text.trim(),
-                                    passwordController.text.trim(),
-                                  ),
+                                  LoginEvent(email, password),
                                 );
                           } else {
                             context.read<AuthBloc>().add(
-                                  SignUpEvent(
-                                    emailController.text.trim(),
-                                    passwordController.text.trim(),
-                                  ),
+                                  SignUpEvent(email, password),
                                 );
                           }
                         },

@@ -19,37 +19,46 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<SignUpEvent>((event, emit) async {
       emit(AuthLoading());
       try {
-        await Supabase.instance.client.auth.signUp(
+        final response = await Supabase.instance.client.auth.signUp(
           email: event.email,
           password: event.password,
         );
-        final user = Supabase.instance.client.auth.currentUser;
-        if (user != null) {
-          emit(AuthSuccess(userId: user.id, email: user.email));
+        
+        if (response.user != null) {
+          final session = response.session;
+          if (session != null) {
+            emit(AuthSuccess(userId: response.user!.id, email: response.user!.email));
+          } else {
+            emit(AuthError('Please check your email to confirm your account'));
+          }
         } else {
-          emit(AuthError('Sign up failed'));
+          emit(AuthError('Sign up failed. Please try again.'));
         }
+      } on AuthException catch (e) {
+        emit(AuthError(e.message));
       } catch (e) {
-        emit(AuthError(e.toString()));
+        emit(AuthError('Sign up failed: ${e.toString()}'));
       }
     });
 
     on<LoginEvent>((event, emit) async {
       emit(AuthLoading());
       try {
-        await Supabase.instance.client.auth.signInWithPassword(
+        final response = await Supabase.instance.client.auth.signInWithPassword(
           email: event.email,
           password: event.password,
         );
-        final user = Supabase.instance.client.auth.currentUser;
-        if (user != null) {
-          final name = user.userMetadata?['name'] as String?;
-          emit(AuthSuccess(userId: user.id, email: user.email, name: name));
+        
+        if (response.user != null) {
+          final name = response.user!.userMetadata?['name'] as String?;
+          emit(AuthSuccess(userId: response.user!.id, email: response.user!.email, name: name));
         } else {
-          emit(AuthError('Login failed'));
+          emit(AuthError('Login failed. Please try again.'));
         }
+      } on AuthException catch (e) {
+        emit(AuthError(e.message));
       } catch (e) {
-        emit(AuthError(e.toString()));
+        emit(AuthError('Login failed: ${e.toString()}'));
       }
     });
 

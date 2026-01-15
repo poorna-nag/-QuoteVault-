@@ -48,43 +48,103 @@ class _QuoteDetailScreenState extends State<QuoteDetailScreen> {
   }
 
   Future<void> _shareAsText() async {
-    await Share.share('${widget.quote.quote}\n\n- ${widget.quote.author}');
+    try {
+      final text = '${widget.quote.quote}\n\n- ${widget.quote.author}';
+      await Share.share(
+        text,
+        subject: 'Quote from Quote Vault',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to share: ${e.toString()}')),
+        );
+      }
+    }
   }
 
   Future<void> _shareAsImage() async {
-    final image = await _screenshotController.capture();
-    if (image == null) return;
+    try {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Preparing image...')),
+        );
+      }
 
-    final tempDir = await getTemporaryDirectory();
-    final file = File(
-      '${tempDir.path}/quote_${DateTime.now().millisecondsSinceEpoch}.png',
-    );
-    await file.writeAsBytes(image);
+      final image = await _screenshotController.capture();
+      if (image == null) {
+        throw Exception('Failed to capture screenshot');
+      }
 
-    await Share.shareXFiles([XFile(file.path)]);
+      final tempDir = await getTemporaryDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final filePath = '${tempDir.path}/quote_$timestamp.png';
+      final file = File(filePath);
+      
+      await file.writeAsBytes(image);
+      
+      if (!await file.exists() || await file.length() == 0) {
+        throw Exception('Failed to create image file');
+      }
+
+      await Share.shareXFiles(
+        [XFile(filePath, mimeType: 'image/png')],
+        subject: 'Quote from Quote Vault',
+        text: '${widget.quote.quote}\n\n- ${widget.quote.author}',
+      );
+
+      Future.delayed(const Duration(seconds: 5), () {
+        if (file.existsSync()) {
+          file.deleteSync();
+        }
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to share image: ${e.toString()}')),
+        );
+      }
+    }
   }
 
   Future<void> _saveImage() async {
-    final image = await _screenshotController.capture();
-    if (image == null) return;
+    try {
+      // Check and request permission
+      final hasAccess = await Gal.hasAccess();
+      if (!hasAccess) {
+        final granted = await Gal.requestAccess();
+        if (!granted) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Permission denied to save images')),
+            );
+          }
+          return;
+        }
+      }
 
-    final tempDir = await getTemporaryDirectory();
-    final file = File(
-      '${tempDir.path}/quote_${DateTime.now().millisecondsSinceEpoch}.png',
-    );
-    await file.writeAsBytes(image);
+      final image = await _screenshotController.capture();
+      if (image == null) return;
 
-    await Gal.putImage(file.path);
+      final tempDir = await getTemporaryDirectory();
+      final file = File(
+        '${tempDir.path}/quote_${DateTime.now().millisecondsSinceEpoch}.png',
+      );
+      await file.writeAsBytes(image);
 
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Image saved to gallery')));
-    }
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Image saved to gallery')));
+      await Gal.putImage(file.path);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Image saved to gallery')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save image: $e')),
+        );
+      }
     }
   }
 
